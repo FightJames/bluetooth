@@ -6,6 +6,9 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,13 +26,14 @@ public class BluetoothConnectService {
     private AcceptThread insecureAcceptThread;
     private ConnectThread connectThread;
     private BluetoothDevice bluetoothDevice;
-    private UUID deviceUUID;
     private ProgressDialog progressDialog;
     private ConnectedThread connectedThread;
+    private Handler handler;
 
-    public BluetoothConnectService(Context context) {
+    public BluetoothConnectService(Context context, Handler handler) {
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        this.context=context;
+        this.context = context;
+        this.handler = handler;
     }
 
     private class AcceptThread extends Thread {
@@ -75,7 +79,6 @@ public class BluetoothConnectService {
         public ConnectThread(BluetoothDevice device, UUID uuid) {
             Timber.d("ConnectThread started");
             bluetoothDevice = device;
-            deviceUUID = uuid;
         }
 
         public void run() {
@@ -167,6 +170,11 @@ public class BluetoothConnectService {
                 try {
                     bytes = inputStream.read(buffer);
                     String incomingMessage = new String(buffer, 0, bytes);
+                    Message msg = new Message();
+                    Bundle bundle = new Bundle();
+                    bundle.putString("text", incomingMessage);
+                    msg.setData(bundle);
+                    handler.sendMessage(msg);
                 } catch (IOException e) {
                     Timber.d("Error reading inputStream " + e.getMessage());
                     break;

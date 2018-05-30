@@ -10,6 +10,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -25,10 +26,21 @@ import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity implements DeviceListAdapter.OnItemClick {
     private int REQUEST_CODE_ASK_PERMISSIONS = 2;
-    private Button discoverBtn, discoverableBtn, onOffBtn, connectionBtn, sendBtn,chatRoomBtn;
+    private Button discoverBtn, discoverableBtn, onOffBtn, connectionBtn, sendBtn;
     private EditText messageEditText;
-    private RecyclerView deviceRecyclerView;
+    private RecyclerView deviceRecyclerView, chatRecyclerView;
     private DeviceListAdapter deviceListAdapter;
+    private ChatListAdapter chatListAdapter;
+    private ArrayList<Message> chatData = new ArrayList<>();
+    private Handler handler = new Handler() {
+        @Override
+        public void handleMessage(android.os.Message msg) {
+            Message message = new Message();
+            message.isRight = false;
+            message.content = msg.getData().getString("text");
+            chatListAdapter.notifyDataSetChanged();
+        }
+    };
 
     private BluetoothConnectService bluetoothConnect;
     private BluetoothAdapter btAdapter;
@@ -65,6 +77,7 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
     protected void onDestroy() {
         super.onDestroy();
         deviceListAdapter = null;
+        chatListAdapter = null;
         unregisterReceiver(deviceReceiver);
         unregisterReceiver(pairReceiver);
     }
@@ -81,13 +94,15 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
 
     private void init() {
         messageEditText = (EditText) findViewById(R.id.messageEditText);
-        chatRoomBtn=(Button)findViewById(R.id.chatRoomBtn);
         discoverBtn = (Button) findViewById(R.id.discoverBtn);
         discoverableBtn = (Button) findViewById(R.id.discoverableBtn);
-        //visibleBtn = (Button) findViewById(R.id.visibleBtn);
         onOffBtn = (Button) findViewById(R.id.onOffBtn);
         connectionBtn = (Button) findViewById(R.id.connectionBtn);
         sendBtn = (Button) findViewById(R.id.sendBtn);
+        chatRecyclerView = (RecyclerView) findViewById(R.id.chatRecyclerView);
+        chatRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        chatListAdapter = new ChatListAdapter(this, chatData);
+        chatRecyclerView.setAdapter(chatListAdapter);
         deviceRecyclerView = (RecyclerView) findViewById(R.id.deviceRecyclerView);
         deviceRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         deviceListAdapter = new DeviceListAdapter(this, btDeviceList);
@@ -132,8 +147,14 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
         sendBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                byte[] bytes = messageEditText.getText().toString().getBytes(Charset.defaultCharset());
+                String text = messageEditText.getText().toString();
+                byte[] bytes = text.getBytes(Charset.defaultCharset());
                 messageEditText.setText("");
+                Message message = new Message();
+                message.isRight = true;
+                message.content = text;
+                chatData.add(message);
+                chatListAdapter.notifyDataSetChanged();
                 bluetoothConnect.write(bytes);
             }
         });
@@ -152,10 +173,16 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
     }
 
     public void startConnection() {
+        chatRecyclerView.setVisibility(View.VISIBLE);
+        deviceRecyclerView.setVisibility(View.INVISIBLE);
+        chatData.clear();
         bluetoothConnect.startClient(mBTDevice, BT_UUID);
+
     }
 
     public void discover() {
+        chatRecyclerView.setVisibility(View.INVISIBLE);
+        deviceRecyclerView.setVisibility(View.VISIBLE);
         if (btAdapter.isDiscovering()) {
             btAdapter.cancelDiscovery();
             btAdapter.startDiscovery();
@@ -187,6 +214,6 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
     public void onItemClick(int position) {
         mBTDevice = btDeviceList.get(position);
         mBTDevice.createBond();
-        bluetoothConnect = new BluetoothConnectService(this);
+        bluetoothConnect = new BluetoothConnectService(this, handler);
     }
 }
