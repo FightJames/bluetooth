@@ -14,7 +14,6 @@ import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -221,9 +220,8 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
     public void onItemClick(int position) {
         mBTDevice = btDeviceList.get(position);
         Timber.d("itemClickPass");
-        Log.d("Main","itemPass");
+        Timber.d("Main itemPass");
         mBTDevice.createBond();
         bluetoothConnect = new BluetoothConnectService(this, handler);
-     //   bluetoothConnect.start();
     }
 }

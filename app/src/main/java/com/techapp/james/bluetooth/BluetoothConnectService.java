@@ -10,14 +10,12 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.os.ParcelUuid;
 import android.util.Log;
 import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.UUID;
 
@@ -30,7 +28,6 @@ public class BluetoothConnectService {
             UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
     private final BluetoothAdapter bluetoothAdapter;
     private Context context;
-    private AcceptThread insecureAcceptThread;
     private ConnectThread connectThread;
     private BluetoothDevice bluetoothDevice;
     private ProgressDialog progressDialog;
@@ -41,45 +38,8 @@ public class BluetoothConnectService {
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         this.context = context;
         this.handler = handler;
-        start();
     }
 
-    private class AcceptThread extends Thread {
-        //local server socket
-        private final BluetoothServerSocket serverSocket;
-
-        public AcceptThread() {
-            BluetoothServerSocket tmp = null;
-            //listening server socket
-            try {
-                tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(appName, BT_UUID);
-                Log.d("Blue", "AcceptThread Setting up Server using: " + BT_UUID);
-            } catch (IOException e) {
-                Log.d("AcceptThreadExp ", e.getMessage());
-            }
-            serverSocket = tmp;
-        }
-
-        public void run() {
-            BluetoothSocket socket = null;
-            try {
-                socket = serverSocket.accept();
-            } catch (IOException e) {
-                Log.d("AcceptThreadExp", "AcceptThread IOException " + e.getMessage());
-            }
-            if (socket != null) {
-                connected(socket);
-            }
-        }
-
-        public void cancel() {
-            try {
-                serverSocket.close();
-            } catch (IOException e) {
-                Timber.d("Cancel " + e.getMessage());
-            }
-        }
-    }
 
     private class ConnectThread extends Thread {
         private BluetoothSocket socket;
@@ -96,7 +56,7 @@ public class BluetoothConnectService {
                 tmp = bluetoothDevice.createRfcommSocketToServiceRecord(BT_UUID);
 
             } catch (IOException e) {
-                Log.d("ConnectThread ", e.getMessage());
+                Timber.d("ConnectThread " + e.getMessage());
             }
             socket = tmp;
             //connect to the BluetoothSocket
@@ -105,17 +65,17 @@ public class BluetoothConnectService {
                     socket.connect();
                 }
             } catch (IOException e) {
-                Log.d("ConnectThread to UUID ", bluetoothDevice.getName());
+                Timber.d("ConnectThread to UUID " + bluetoothDevice.getName());
                 try {
-                    Log.d("ConnectThread", "trying fallback...");
+                    Timber.d("ConnectThread  trying fallback...");
 
                     socket = (BluetoothSocket) bluetoothDevice.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(bluetoothDevice, 1);
 
                     socket.connect();
 
-                    Log.d("ConnectThread", "ConnectedBluetoothConnect");
+                    Timber.d("ConnectThread ConnectedBluetoothConnect");
                 } catch (Exception e2) {
-                    Log.d("ConnectThread", "Couldn't establish Bluetooth connection!  " + e2.getMessage());
+                    Timber.d("ConnectThread Couldn't establish Bluetooth connection!  " + e2.getMessage());
                     ((Activity) context).runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -123,13 +83,6 @@ public class BluetoothConnectService {
                         }
                     });
                 }
-//                Log.d("ConnectThreadExp", e.getMessage());
-//                //close socket
-//                try {
-//                    socket.close();
-//                } catch (IOException el) {
-//                    Timber.d("ConnectThread can't close connect in socket " + e.getMessage());
-//                }
 
             }
             connected(socket);
@@ -144,20 +97,7 @@ public class BluetoothConnectService {
         }
     }
 
-    //start service
-    public synchronized void start() {
-        //cancel thread attemp to make a connection
-        if (connectedThread != null) {
-            //connectThread.cancel();
-            connectThread = null;
-        }
-        Timber.d("AcceptPass");
-        if (insecureAcceptThread == null) {
 
-            insecureAcceptThread = new AcceptThread();
-            insecureAcceptThread.start();
-        }
-    }
 
     /*
      * acceptThreat starts and sits waiting for a connection.
@@ -206,7 +146,7 @@ public class BluetoothConnectService {
                 try {
                     bytes = inputStream.read(buffer);
                     String incomingMessage = new String(buffer, 0, bytes);
-                    Log.d("message  ", incomingMessage);
+                    Timber.d("message  " + incomingMessage);
                     Message msg = new Message();
                     Bundle bundle = new Bundle();
                     bundle.putString("text", incomingMessage);
@@ -222,11 +162,11 @@ public class BluetoothConnectService {
         //send data to remote device
         public void write(byte[] bytes) {
             String text = new String(bytes, Charset.defaultCharset());
-            Log.d("Write data ", text);
+            Timber.d("Write data " + text);
             try {
                 outputStream.write(bytes);
             } catch (IOException e) {
-                Log.d("Error outputStream", e.getMessage());
+                Timber.d("Error outputStream" + e.getMessage());
             }
         }
 
