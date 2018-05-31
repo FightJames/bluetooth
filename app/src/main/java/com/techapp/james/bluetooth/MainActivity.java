@@ -14,6 +14,7 @@ import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -35,9 +36,14 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
     private Handler handler = new Handler() {
         @Override
         public void handleMessage(android.os.Message msg) {
+            if (chatRecyclerView.getVisibility() == View.INVISIBLE) {
+                chatRecyclerView.setVisibility(View.VISIBLE);
+                deviceRecyclerView.setVisibility(View.INVISIBLE);
+            }
             Message message = new Message();
             message.isRight = false;
             message.content = msg.getData().getString("text");
+            chatData.add(message);
             chatListAdapter.notifyDataSetChanged();
         }
     };
@@ -195,7 +201,8 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
 
     public void applyRight() {
         ArrayList<Integer> allPermission = new ArrayList<Integer>();
-        String[] permission = {Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_COARSE_LOCATION};  //權限項目在此新增
+        String[] permission = {Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_COARSE_LOCATION
+        ,Manifest.permission.ACCESS_NETWORK_STATE};  //權限項目在此新增
         for (int i = 0; i < permission.length; i++) {
             int eachPermission = checkSelfPermission(permission[i]); //查看有無權限
             allPermission.add(eachPermission);
@@ -213,7 +220,10 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
     @Override
     public void onItemClick(int position) {
         mBTDevice = btDeviceList.get(position);
+        Timber.d("itemClickPass");
+        Log.d("Main","itemPass");
         mBTDevice.createBond();
         bluetoothConnect = new BluetoothConnectService(this, handler);
+     //   bluetoothConnect.start();
     }
 }

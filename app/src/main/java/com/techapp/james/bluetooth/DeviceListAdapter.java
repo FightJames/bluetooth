@@ -38,10 +38,10 @@ public class DeviceListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         String address = device.getAddress();
         itemViewHolder.itemTextView.setText(name);
         itemViewHolder.subTextView.setText(address);
-        itemViewHolder.itemView.setOnClickListener(new View.OnClickListener(){
+        itemViewHolder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-               context.onItemClick(position);
+                ((OnItemClick) context).onItemClick(position);
             }
         });
     }
