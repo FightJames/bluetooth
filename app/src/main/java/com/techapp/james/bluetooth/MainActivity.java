@@ -25,7 +25,7 @@ import java.util.UUID;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity implements DeviceListAdapter.OnItemClick {
-    private int REQUEST_CODE_ASK_PERMISSIONS = 2;
+    private static int REQUEST_CODE_ASK_PERMISSIONS = 2;
     private Button discoverBtn, discoverableBtn, onOffBtn, connectionBtn, sendBtn;
     private EditText messageEditText;
     private RecyclerView deviceRecyclerView, chatRecyclerView;
@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
 
     private BluetoothConnectService bluetoothConnect;
     private BluetoothAdapter btAdapter;
-    private static final UUID BT_UUID = UUID.fromString("571e131a-6347-11e8-adc0-fa7ae01bbebc");
+    private static final UUID BT_UUID = UUID.fromString("0fa87c0d0-afac-11de-8a39-0800200c9a66");
     private BluetoothDevice mBTDevice;
     private ArrayList<BluetoothDevice> btDeviceList = new ArrayList<>();
     private BroadcastReceiver deviceReceiver = new BroadcastReceiver() {
@@ -201,7 +201,7 @@ public class MainActivity extends AppCompatActivity implements DeviceListAdapter
     public void applyRight() {
         ArrayList<Integer> allPermission = new ArrayList<Integer>();
         String[] permission = {Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_COARSE_LOCATION
-        ,Manifest.permission.ACCESS_NETWORK_STATE};  //權限項目在此新增
+                , Manifest.permission.ACCESS_NETWORK_STATE};  //權限項目在此新增
         for (int i = 0; i < permission.length; i++) {
             int eachPermission = checkSelfPermission(permission[i]); //查看有無權限
             allPermission.add(eachPermission);
