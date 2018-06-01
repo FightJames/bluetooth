@@ -266,7 +266,7 @@ public class BluetoothConnectService {
      * Start the chat service. Specifically start AcceptThread to begin a
      * session in listening (server) mode. Called by the Activity onResume()
      */
-    public synchronized void start() {
+    private synchronized void start() {
         Timber.d("start");
 
         // Cancel any thread attempting to make a connection
