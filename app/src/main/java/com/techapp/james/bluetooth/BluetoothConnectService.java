@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.os.Bundle;
@@ -20,19 +21,24 @@ import java.util.UUID;
 import timber.log.Timber;
 
 public class BluetoothConnectService {
-    private static final UUID BT_UUID = UUID.fromString("0fa87c0d0-afac-11de-8a39-0800200c9a66");
+    private static final UUID BT_UUID = UUID.fromString("571e131a-6347-11e8-adc0-fa7ae01bbebc");
+    private static String appName = "Bluetooth";
     private final BluetoothAdapter bluetoothAdapter;
+    private static final UUID INSECURE_UUID =
+            UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
     private Context context;
     private ConnectThread connectThread;
     private BluetoothDevice bluetoothDevice;
     private ProgressDialog progressDialog;
     private ConnectedThread connectedThread;
     private Handler handler;
+    private AcceptThread acceptThread;
 
     public BluetoothConnectService(Context context, Handler handler) {
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         this.context = context;
         this.handler = handler;
+        start();
     }
 
 
@@ -71,6 +77,7 @@ public class BluetoothConnectService {
                     Timber.d("ConnectThread ConnectedBluetoothConnect");
                 } catch (Exception e2) {
                     Timber.d("ConnectThread Couldn't establish Bluetooth connection!  " + e2.getMessage());
+                    Timber.d("ConnectThread " + e2.getLocalizedMessage());
                     ((Activity) context).runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -88,10 +95,10 @@ public class BluetoothConnectService {
                 socket.close();
             } catch (IOException e) {
                 Timber.d("Cancel close of socket in ConnectThread failed " + e.getMessage());
+
             }
         }
     }
-
 
 
     /*
@@ -189,5 +196,87 @@ public class BluetoothConnectService {
     public void write(byte[] out) {
 
         connectedThread.write(out);
+    }
+
+    /**
+     * This thread runs while listening for incoming connections. It behaves
+     * like a server-side client. It runs until a connection is accepted
+     * (or until cancelled).
+     */
+    private class AcceptThread extends Thread {
+
+        // The local server socket
+        private final BluetoothServerSocket serverSocket;
+
+        public AcceptThread() {
+            BluetoothServerSocket tmp = null;
+
+            // Create a new listening server socket
+            try {
+
+                //   tmp = bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(appName, INSECURE_UUID);
+                tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(appName, BT_UUID);
+
+                Timber.d("AcceptThread: Setting up Server using: " + INSECURE_UUID);
+            } catch (IOException e) {
+                Timber.e("AcceptThread: IOException: " + e.getMessage());
+            }
+
+            serverSocket = tmp;
+        }
+
+        public void run() {
+            Timber.d("run: AcceptThread Running.");
+
+            BluetoothSocket socket = null;
+
+            try {
+                // This is a blocking call and will only return on a
+                // successful connection or an exception
+                Timber.d("run: RFCOM server socket start.....");
+
+                socket = serverSocket.accept();
+
+                Timber.d("run: RFCOM server socket accepted connection.");
+
+            } catch (IOException e) {
+                Timber.e("AcceptThread: IOException: " + e.getMessage());
+            }
+
+            //talk about this is in the 3rd
+            if (socket != null) {
+                connected(socket);
+            }
+
+            Timber.i("END mAcceptThread ");
+        }
+
+        public void cancel() {
+            Timber.d("cancel: Canceling AcceptThread.");
+            try {
+                serverSocket.close();
+            } catch (IOException e) {
+                Timber.e("cancel: Close of AcceptThread ServerSocket failed. " + e.getMessage());
+            }
+        }
+
+    }
+
+    /**
+     * Start the chat service. Specifically start AcceptThread to begin a
+     * session in listening (server) mode. Called by the Activity onResume()
+     */
+    public synchronized void start() {
+        Timber.d("start");
+
+        // Cancel any thread attempting to make a connection
+        if (connectThread != null) {
+            connectThread.cancel();
+            connectThread = null;
+        }
+        if (acceptThread == null) {
+            acceptThread = new AcceptThread();
+            acceptThread.start();
+        }
     }
 }
